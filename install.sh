@@ -46,3 +46,8 @@ rm -f $HOME/.zcompdump*
 
 # Python virtualenvwrapper
 pip install --upgrade --user virtualenvwrapper
+
+# NVM
+if [ -d "$HOME/.nvm" ]; then
+  $GITCLONE https://github.com/creationix/nvm.git $HOME/.nvm
+fi

@@ -94,7 +94,7 @@ source '/usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/completion.
 # Disable creating the '._blah' metadata files when calling tar.
 export COPYFILE_DISABLE=true
 
-# Node (NVM) TODO: ensure nvm installed in install script.
+# NVM
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"  # This loads nvm
 
@@ -109,18 +109,12 @@ else
     echo "Warning: expected local gem install folder not present: ${LOCALGEMS}."
 fi
 
-# Python virtualenvwrapper TODO: install virtualenvwrapper with install script
+# Python virtualenvwrapper
 export WORKON_HOME=$HOME/.venvs
 export PROJECT_HOME=$HOME/Projects
 export VIRTUALENVWRAPPER_SCRIPT=$HOME/Library/Python/2.7/bin/virtualenvwrapper.sh
 export VIRTUALENVWRAPPER_PYTHON=/usr/local/bin/python2
 source $HOME/Library/Python/2.7/bin/virtualenvwrapper_lazy.sh
-
-# Go - go verison manager (gvm) TODO: ensure gvm installed with install script
-# export GOROOT=/usr/local/opt/go/libexec
-# export GOPATH=$HOME/Projects/go
-# export PATH=$PATH:$GOPATH/bin
-# [[ -s "/Users/carnold/.gvm/scripts/gvm" ]] && source "/Users/carnold/.gvm/scripts/gvm"
 
 # Perl
 PATH="/Users/carnold/perl5/bin${PATH:+:${PATH}}"; export PATH;
