@@ -1,0 +1,210 @@
+#!/usr/bin/env zsh
+
+# ===== Aliases, Functions =====
+
+alias l="ls -alhpT"
+alias dlf="docker logs -f"
+alias dco="docker-compose"
+alias kcl="kubectl"
+alias gaegrep="grep -r \
+    --exclude-dir node_modules.docker \
+    --exclude-dir vendor.docker \
+    --exclude-dir node_modules \
+    --exclude-dir lib \
+    --exclude-dir vendor"
+
+# ===== GIT-related =====
+alias gcam='git commit -a -m'
+alias gco='git checkout'
+alias gtag="git describe --tags"
+alias gd='git diff'
+alias gdca='git diff --cached'
+alias gdcw='git diff --cached --word-diff'
+alias gdct='git describe --tags `git rev-list --tags --max-count=1`'
+alias gdt='git diff-tree --no-commit-id --name-only -r'
+alias gdw='git diff --word-diff'
+alias gf='git fetch'
+alias gfa='git fetch --all --prune'
+alias gfo='git fetch origin'
+alias gl='git pull'
+alias ggpull='git pull origin $(git_current_branch)'
+alias ggpush='git push origin $(git_current_branch)'
+alias gss='git status -s'
+alias gst='git status'
+# ===== Functions =====
+
+# Source: https://github.com/robbyrussell/oh-my-zsh/blob/master/lib/git.zsh#L61
+# Outputs the name of the current branch
+# Usage example: git pull origin $(git_current_branch)
+# Using '--quiet' with 'symbolic-ref' will not cause a fatal error (128) if
+# it's not a symbolic ref, but in a Git repo.
+function git_current_branch() {
+  local ref
+  ref=$(command git symbolic-ref --quiet HEAD 2> /dev/null)
+  local ret=$?
+  if [[ $ret != 0 ]]; then
+    [[ $ret == 128 ]] && return  # no git repo.
+    ref=$(command git rev-parse --short HEAD 2> /dev/null) || return
+  fi
+  echo ${ref#refs/heads/}
+}
+
+# Swap iterm profile on the fly.
+function pro() { echo -e "\033]50;SetProfile=$1\a" }
+
+# Kubectl helpers.
+function koobmini() { kubectl config use-context minikube }
+function koobdev() { gcloud --project leadpage-dev container clusters get-credentials test-cluster-1 --zone us-central1-c }
+function koobtest() { gcloud --project leadpage-test container clusters get-credentials api-cluster-1 --zone us-central1-b }
+function koobprod() { gcloud --project lead-pages container clusters get-credentials api-cluster-1 --zone us-central1-b }
+function koobci() { gcloud --project lp-ci-prod container clusters get-credentials infra-1 --zone us-central1-a }
+function koobpsdev() { gcloud --project lp-pageserving-dev container clusters get-credentials page-cluster-1 --zone us-central1-b }
+function koobpstest() { gcloud --project lp-pageserving-test container clusters get-credentials page-cluster-1 --zone us-central1-b }
+function koobpsprod() { gcloud --project lp-pageserving-prod container clusters get-credentials page-cluster-1 --zone us-central1-b }
+
+# Shorter git describe with tags.
+function gdt() { git describe --tags --always }
+
+# ===== Kubernetes helpers =====
+
+# Start minikube with the "Projects" volume.
+function volminikube () {
+     minikube start --mount --mount-string="$HOME/Projects:/host"
+}
+
+# Gets all pods in all namespaces, ag output for string if provided.
+function kgp () { 
+    if [ -z $1 ] ; then
+        kubectl get pods -o wide --all-namespaces
+    else
+        kubectl get pods -o wide --all-namespaces | ag $1
+    fi
+}
+
+function kgd () { 
+    if [ -z $1 ] ; then
+        kubectl get deployment -o wide --all-namespaces
+    else
+        kubectl get deployment -o wide --all-namespaces | ag $1
+    fi
+}
+
+function kgs () { 
+    if [ -z $1 ] ; then
+        kubectl get svc -o wide --all-namespaces
+    else
+        kubectl get svc -o wide --all-namespaces | ag $1
+    fi
+}
+
+# Calls kubectl describe pod
+function kdp () {
+    if [ -z $1 ] ; then
+        echo "Provide pod name for kubectl describe pod"
+    else
+        kubectl describe pod $1
+    fi
+}
+
+# sh into the first pod returned by searching for podname.
+function ksh () {
+    if [ -z $1 ]; then
+        echo "Usage: ksh <pod>"
+        return 1
+    fi
+    POD=$(kubectl get pod | grep $1|head -1|awk '{print $1}') 
+    echo "Shelling into pod $POD"
+    kubectl exec -ti $POD -- sh
+}
+
+# bash into first pod returned by searching for podname.
+function kbash () {
+    if [ -z "$1" ]; then
+        echo "Usage: kbash <pod search string>"
+        return 1
+    fi
+    POD=$(kubectl get pod | grep $1 | head -1 | awk '{print $1}') 
+    if [ ! -z "$2" ]; then
+        CONTAINER="$2"
+        echo "Shelling into pod ${POD} container ${CONTAINER}"
+        kubectl exec -i -t "$POD" -c "$CONTAINER" -- bash -i -l
+    else
+        echo "Shelling into default container of pod ${POD}"
+        kubectl exec -i -t "$POD" -- bash -i -l
+    fi
+}
+
+# bash into the jnlp container of a pod (for jenkins-kubernetes)
+function jbash () {
+    if [ -z $1 ]; then
+    fi
+    POD=$(kubectl get pod | grep $1 | head -1 | awk '{print $1}')
+    kubectl exec $POD -c jnlp -i -t -- bash -il
+}
+
+# Follow logs of a Python API container in a given pod.
+function klf () {
+    if [ -z $1 ]; then
+        echo "Usage klf <pod>"
+        return 1
+    fi
+    kubectl logs -f $1 $(echo $1 | rev | cut -d- -f3- | rev)
+}
+
+# Get into the docker-for-mac host
+function dockernsenter () {
+    docker run -it --privileged --pid=host debian nsenter -t 1 -m -u -n -i sh
+}
+
+# Notes - create and find
+function note() { $EDITOR ~/.notes/"$*"; }
+function notelist() { ls -c ~/.notes/ | grep "$*"; }
+function interview() {
+    if [ ! -f ~/.notes/interviews/"$*" ]; then
+        echo "Interview doesn't exist, copying template."
+        cp ~/.notes/templates/interview ~/.notes/interviews/"$*" 
+    fi
+    $EDITOR ~/.notes/interviews/"$*"
+}
+
+# Docker helpers
+function dgv() { eval "$(dinghy env)"; }
+
+function docker-image-children() {
+    if [ -z $1 ]; then
+        echo "Usage docker-get-children <image>"
+        return 1
+    fi
+    docker inspect --format='{{.Id}} {{.Parent}}' $(docker images --filter since=$1 -q)
+}
+
+function docker-delete-danglers() {
+    docker rmi $(docker images --filter "dangling=true" -q --no-trunc)
+}
+
+# Opens a directory or file in Intellij IDEA
+function ijidea() {
+    IDEA=`ls -1d /Applications/IntelliJ\ * | tail -n1`
+    wd=`pwd`
+    # if directory given
+    if [ -d "$1" ]; then
+      wd=`ls -1d "$1" | head -n1`
+    fi
+    # if file given
+    if [ -f "$1" ]; then
+      open -a "$IDEA" "$1"
+    else
+        pushd $wd > /dev/null
+        if [ -d ".idea" ]; then
+          open -a "$IDEA" .
+        elif [ -f *.ipr ]; then
+          open -a "$IDEA" `ls -1d *.ipr | head -n1`
+        elif [ -f pom.xml ]; then
+          open -a "$IDEA" "pom.xml"
+        else
+          open "$IDEA"
+        fi
+        popd > /dev/null
+    fi
+}
+
